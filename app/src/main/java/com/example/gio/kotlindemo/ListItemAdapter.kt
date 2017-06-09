@@ -27,7 +27,7 @@ internal class ListItemAdapter(var items : List<Item>, var mContext : Context)
         holder?.itemView?.tvContentItem?.text = item.content
         holder?.itemView?.tvDescriptionItem?.text = item.description
 
-//        animate(holder)
+        animateList(holder)
         holder?.itemView?.setOnClickListener {
             mOnMyItemClickListenner!!.onMyItemClick(position)
             animate(holder.itemView, position)
@@ -42,6 +42,11 @@ internal class ListItemAdapter(var items : List<Item>, var mContext : Context)
         val animAnticipateOvershoot = AnimationUtils.loadAnimation(mContext, R.anim.bounce_interpolator)
         itemView?.animation = animAnticipateOvershoot
         notifyItemChanged(position)
+    }
+
+    private fun animateList(holder: ViewHolder?) {
+        val animAnticipateOvershoot = AnimationUtils.loadAnimation(mContext, R.anim.bounce_interpolator)
+        holder?.itemView?.animation = animAnticipateOvershoot
     }
 
     interface OnMyItemClickListenner {
