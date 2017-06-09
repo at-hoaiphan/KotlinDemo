@@ -13,7 +13,9 @@ import kotlinx.android.synthetic.main.list_item.view.*
  * Created on 6/9/2017.
  */
 
-internal class ListItemAdapter(var items : List<Item>, var mContext : Context) : RecyclerView.Adapter<ListItemAdapter.ViewHolder>() {
+internal class ListItemAdapter(var items : List<Item>, var mContext : Context)
+    : RecyclerView.Adapter<ListItemAdapter.ViewHolder>() {
+    private var mOnMyItemClickListenner : OnMyItemClickListenner? = null
     override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent?.context).inflate(R.layout.list_item, parent,false)
         return ViewHolder(view)
@@ -25,16 +27,33 @@ internal class ListItemAdapter(var items : List<Item>, var mContext : Context) :
         holder?.itemView?.tvContentItem?.text = item.content
         holder?.itemView?.tvDescriptionItem?.text = item.description
 
-        animate(holder)
-//        holder.itemView.setOnClickListener { }
+        animateList(holder)
+        holder?.itemView?.setOnClickListener {
+            mOnMyItemClickListenner!!.onMyItemClick(position)
+            animate(holder.itemView, position)
+        }
     }
 
     override fun getItemCount(): Int = items.size
 
     internal inner class ViewHolder (itemView : View) : RecyclerView.ViewHolder(itemView)
 
-    private fun animate(viewHolder: ViewHolder?) {
+    private fun animate(itemView: View?, position: Int) {
         val animAnticipateOvershoot = AnimationUtils.loadAnimation(mContext, R.anim.bounce_interpolator)
-        viewHolder?.itemView?.animation = animAnticipateOvershoot
+        itemView?.animation = animAnticipateOvershoot
+        notifyItemChanged(position)
+    }
+
+    private fun animateList(holder: ViewHolder?) {
+        val animAnticipateOvershoot = AnimationUtils.loadAnimation(mContext, R.anim.bounce_interpolator)
+        holder?.itemView?.animation = animAnticipateOvershoot
+    }
+
+    interface OnMyItemClickListenner {
+        fun onMyItemClick(id: Int)
+    }
+
+    fun setItemClickListenner( mOnMyItemClickListenner: OnMyItemClickListenner) {
+        this.mOnMyItemClickListenner = mOnMyItemClickListenner
     }
 }
