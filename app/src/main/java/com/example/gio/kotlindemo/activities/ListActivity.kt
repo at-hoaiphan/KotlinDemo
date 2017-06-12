@@ -1,4 +1,5 @@
-package com.example.gio.kotlindemo
+package com.example.gio.kotlindemo.activities
+import kotlinx.android.synthetic.main.activity_list.*
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -6,6 +7,9 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.widget.LinearLayout
+import com.example.gio.kotlindemo.Item
+import com.example.gio.kotlindemo.ListItemAdapter
+import com.example.gio.kotlindemo.R
 import kotlinx.android.synthetic.main.activity_list.*
 
 class ListActivity : AppCompatActivity() {
@@ -26,7 +30,7 @@ class ListActivity : AppCompatActivity() {
         rvItems.layoutManager = layoutManager
         rvItems.adapter = mAdapter
 
-        mAdapter!!.setItemClickListenner(object : ListItemAdapter.OnMyItemClickListenner{
+        mAdapter!!.setItemClickListenner(object : ListItemAdapter.OnMyItemClickListenner {
             override fun onMyItemClick(id: Int) {
                 Log.d("id ", id.toString())
             }
