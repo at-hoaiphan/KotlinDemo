@@ -15,17 +15,26 @@ import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import com.example.gio.kotlindemo.R
+import com.example.gio.kotlindemo.datas.BusStopDatabase
+import com.example.gio.kotlindemo.models.bus_stops.PlaceStop
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import kotlinx.android.synthetic.main.activity_map.*
 
-class MapActivity : AppCompatActivity(), LocationListener {
+class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf()) : AppCompatActivity(), LocationListener {
+    val DEFAULT_CARRIAGE = "0"
+//    val CARRIAGE_1 = "1"
+//    val CARRIAGE_2 = "2"
+//    val CARRIAGE_3 = "3"
     val REQUEST_ID_ACCESS_COURSE_FINE_LOCATION = 100
     var cameraPosition: CameraPosition? = null
+    var sPositionCarriage = DEFAULT_CARRIAGE
     lateinit var mMyProgress: ProgressDialog
     private var mMyMap: GoogleMap? = null
     private var mCurrentMarker: Marker? = null
+    private var mBusStopDatabase: BusStopDatabase? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +52,8 @@ class MapActivity : AppCompatActivity(), LocationListener {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.fragmentMap) as SupportMapFragment
         // Put event when GoogleMap is ready.
         mapFragment.getMapAsync { googleMap -> onMyMapReady(googleMap) }
+
+        sPositionCarriage = spBusCarriage.selectedItemPosition.toString()
     }
 
     fun onMyMapReady(googleMap: GoogleMap) {
@@ -53,7 +64,12 @@ class MapActivity : AppCompatActivity(), LocationListener {
             // Dismiss Dialog Progress when downloading finished
             mMyProgress.dismiss()
             // Get data from database
-
+            mBusStopDatabase = BusStopDatabase(baseContext)
+            if (sPositionCarriage == DEFAULT_CARRIAGE) {
+                mPlaceStops.addAll(mBusStopDatabase!!.allPlaces)
+            } else {
+                mPlaceStops.addAll(mBusStopDatabase!!.getPlacesByIdCarriage(sPositionCarriage))
+            }
             // Draw all carriage
 
             // Show User's Location

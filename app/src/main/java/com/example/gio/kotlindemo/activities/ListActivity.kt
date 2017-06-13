@@ -1,5 +1,4 @@
 package com.example.gio.kotlindemo.activities
-import kotlinx.android.synthetic.main.activity_list.*
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
