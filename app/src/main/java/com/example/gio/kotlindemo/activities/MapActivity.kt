@@ -20,28 +20,12 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 
-class MapActivity : AppCompatActivity() , LocationListener{
-    override fun onLocationChanged(p0: Location?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onStatusChanged(p0: String?, p1: Int, p2: Bundle?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onProviderEnabled(p0: String?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onProviderDisabled(p0: String?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
+class MapActivity : AppCompatActivity(), LocationListener {
     val REQUEST_ID_ACCESS_COURSE_FINE_LOCATION = 100
-    var cameraPosition : CameraPosition = null!!
-    private var mMyProgress: ProgressDialog
-    private var mMyMap: GoogleMap
-    private var mCurrentMarker: Marker
+    var cameraPosition: CameraPosition? = null
+    lateinit var mMyProgress: ProgressDialog
+    private var mMyMap: GoogleMap? = null
+    private var mCurrentMarker: Marker? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +49,7 @@ class MapActivity : AppCompatActivity() , LocationListener{
         // Get GoogleMap Object
         mMyMap = googleMap
 
-        mMyMap.setOnMapLoadedCallback {
+        mMyMap!!.setOnMapLoadedCallback {
             // Dismiss Dialog Progress when downloading finished
             mMyProgress.dismiss()
             // Get data from database
@@ -76,14 +60,14 @@ class MapActivity : AppCompatActivity() , LocationListener{
 
             askPermissionsAndShowMyLocation()
         }
-        mMyMap.mapType = GoogleMap.MAP_TYPE_SATELLITE
+        mMyMap!!.mapType = GoogleMap.MAP_TYPE_SATELLITE
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return
         }
-        mMyMap.isMyLocationEnabled = true
+        mMyMap!!.isMyLocationEnabled = true
     }
 
     fun askPermissionsAndShowMyLocation() {
@@ -103,6 +87,7 @@ class MapActivity : AppCompatActivity() , LocationListener{
             }
         }
         // Show Current Location
+        showMyLocation()
     }
 
     // Find a Location Provider
@@ -144,20 +129,19 @@ class MapActivity : AppCompatActivity() , LocationListener{
             Toast.makeText(this, R.string.error_message_show_location_error, Toast.LENGTH_LONG).show()
             return
         }
-        // Android API >= 23 catch SecurityException.
 
+        // Android API >= 23 catch SecurityException.
         if (myLocation != null) {
             val latLng = LatLng(myLocation.latitude, myLocation.longitude)
-            mMyMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13f))
+            mMyMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13f))
             // Add MyLocation on Map:
             val option = MarkerOptions()
             option.title(getString(R.string.title_marker_my_location))
             option.snippet(latLng.latitude.toString() + "+" + latLng.longitude)
             option.position(LatLng(latLng.latitude, latLng.longitude))
             option.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_start_marker))
-            mCurrentMarker = mMyMap.addMarker(option)
-            mCurrentMarker.setDraggable(true)
-            mCurrentMarker.showInfoWindow()
+            mCurrentMarker = mMyMap?.addMarker(option)
+            mCurrentMarker?.showInfoWindow()
 
             cameraPosition = CameraPosition.Builder()
                     .target(latLng)             // Sets the center of the map to location user
@@ -167,4 +151,21 @@ class MapActivity : AppCompatActivity() , LocationListener{
                     .build()
         }
     }
+
+    override fun onLocationChanged(p0: Location?) {
+        // No-op
+    }
+
+    override fun onStatusChanged(p0: String?, p1: Int, p2: Bundle?) {
+        // No-op
+    }
+
+    override fun onProviderEnabled(p0: String?) {
+        // No-op
+    }
+
+    override fun onProviderDisabled(p0: String?) {
+        // No-op
+    }
+
 }
