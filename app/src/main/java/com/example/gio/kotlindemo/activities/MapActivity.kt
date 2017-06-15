@@ -14,6 +14,8 @@ import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
+import android.view.View
+import android.widget.AdapterView
 import android.widget.Toast
 import com.example.gio.kotlindemo.R
 import com.example.gio.kotlindemo.datas.BusStopDatabaseJava
@@ -27,9 +29,9 @@ import kotlinx.android.synthetic.main.activity_map.*
 
 class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf()) : AppCompatActivity(), LocationListener {
     val DEFAULT_CARRIAGE = "0"
-    //    val CARRIAGE_1 = "1"
-//    val CARRIAGE_2 = "2"
-//    val CARRIAGE_3 = "3"
+    val CARRIAGE_1 = "1"
+    val CARRIAGE_2 = "2"
+    val CARRIAGE_3 = "3"
     val REQUEST_ID_ACCESS_COURSE_FINE_LOCATION = 100
     var cameraPosition: CameraPosition? = null
     var sPositionCarriage = DEFAULT_CARRIAGE
@@ -39,6 +41,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
     private var mBusStopDatabase: BusStopDatabaseJava? = null
     private var mListMarkers: ArrayList<Marker> = arrayListOf()
     private var mAllCarriagePolyline: Polyline? = null
+    private var mCarriagePolyline: Polyline? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,6 +95,57 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             }
             // Draw all carriage
             drawAllCarriagePoly()
+            // Show bus carriage polyline by choose spinner
+            spBusCarriage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(adapterView: AdapterView<*>, view: View, i: Int, l: Long) {
+    //                    mViewPager.setVisibility(View.GONE)
+    //                    mIsViewpagerVisibility = false
+
+                    sPositionCarriage = i.toString()
+                    // Reload map
+                    mMyMap!!.clear()
+    //                    mIsDirected = false
+
+                    // draw carriage
+                    if (sPositionCarriage == 0.toString()) {
+                        drawAllCarriagePoly()
+                    } else {
+                        drawCarriagePoly(sPositionCarriage)
+                    }
+    //                    // Remove previousSelectedMarker
+    //                    if (mPreviousSelectedMarker != null) {
+    //                        mPreviousSelectedMarker.remove()
+    //                    }
+
+                    showMyLocation()
+                    mListMarkers.clear()
+                    mPlaceStops.clear()
+                    if (sPositionCarriage == 0.toString()) {
+                        mPlaceStops.addAll(mBusStopDatabase!!.allPlaces)
+                    } else {
+                        mPlaceStops.addAll(mBusStopDatabase!!.getPlacesByIdCarriage(sPositionCarriage))
+                    }
+
+                    if (mPlaceStops.size > 0) {
+                        for (placeStop in mPlaceStops) {
+                            val option = MarkerOptions()
+                            option.title(placeStop.name)
+                            option.snippet(placeStop.latitude.toString() + ";" + placeStop.longitude.toString())
+                            option.position(LatLng(placeStop.latitude, placeStop.longitude))
+                            option.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+                            val marker = mMyMap!!.addMarker(option)
+                            mListMarkers.add(marker)
+                        }
+                    }
+//                    mViewPager.setAdapter(null)
+//                    mAdapter = ViewPagerMarkerAdapter(baseContext, supportFragmentManager, mPlaceStops)
+//                    mViewPager.setAdapter(mAdapter)
+                }
+
+                override fun onNothingSelected(adapterView: AdapterView<*>) {
+
+                }
+            }
             // Show User's Location
 
             askPermissionsAndShowMyLocation()
@@ -187,6 +241,45 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
         }
     }
 
+    private fun drawCarriagePoly(carriage: String) {
+        // points: overview_polyline
+        val carriagePolyOption = PolylineOptions().geodesic(true).width(25f)
+        val arrCarriageDecode = java.util.ArrayList<LatLng>()
+        when (carriage) {
+            CARRIAGE_1 -> {
+                // Bus Carriage 1
+                arrCarriageDecode.addAll(CarriagePolyline.carriagePoly1)
+                carriagePolyOption.color(Color.parseColor("#99FF373E"))
+            }
+            CARRIAGE_2 -> {
+                // Bus Carriage 2
+                arrCarriageDecode.addAll(CarriagePolyline.carriagePoly2)
+                carriagePolyOption.color(Color.parseColor("#88FFF837"))
+            }
+            CARRIAGE_3 -> {
+                // Bus Carriage 3
+                arrCarriageDecode.addAll(CarriagePolyline.carriagePoly3)
+                carriagePolyOption.color(Color.parseColor("#7337FF37"))
+            }
+        }
+        val option = MarkerOptions()
+        option.title(getString(R.string.title_marker_bus_here))
+        option.position(LatLng(arrCarriageDecode[0].latitude, arrCarriageDecode[0].longitude))
+        option.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_marker))
+        // Draw polyline
+        for (arrCarriage in arrCarriageDecode) {
+            carriagePolyOption.add(arrCarriage)
+        }
+        // Clear old Polyline
+        if (mCarriagePolyline != null) {
+            mCarriagePolyline?.remove()
+        }
+        if (mAllCarriagePolyline != null) {
+            mAllCarriagePolyline?.remove()
+        }
+        mCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption)
+    }
+
     private fun drawAllCarriagePoly() {
         // points: overview_polyline
         val arrCarriageDecode1 = java.util.ArrayList<LatLng>()
@@ -196,7 +289,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
         arrCarriageDecode1.addAll(CarriagePolyline.carriagePoly1)
         arrCarriageDecode2.addAll(CarriagePolyline.carriagePoly2)
         arrCarriageDecode3.addAll(CarriagePolyline.carriagePoly3)
-        // Draw polylines
+        // Draw polyline
         val carriagePolyOption1 = PolylineOptions().geodesic(true).color(Color.parseColor("#99FF373E")).width(30f)
         val carriagePolyOption2 = PolylineOptions().geodesic(true).color(Color.parseColor("#88FFF837")).width(23f)
         val carriagePolyOption3 = PolylineOptions().geodesic(true).color(Color.parseColor("#7337FF37")).width(15f)
