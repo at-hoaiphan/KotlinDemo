@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.ProgressDialog
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.location.Criteria
 import android.location.Location
 import android.location.LocationListener
@@ -16,6 +17,7 @@ import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import com.example.gio.kotlindemo.R
 import com.example.gio.kotlindemo.datas.BusStopDatabaseJava
+import com.example.gio.kotlindemo.datas.CarriagePolyline
 import com.example.gio.kotlindemo.models.bus_stops.PlaceStop
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -36,6 +38,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
     private var mCurrentMarker: Marker? = null
     private var mBusStopDatabase: BusStopDatabaseJava? = null
     private var mListMarkers: ArrayList<Marker> = arrayListOf()
+    private var mAllCarriagePolyline: Polyline? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +91,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                 Toast.makeText(baseContext, R.string.error_message_load_data_fail, Toast.LENGTH_SHORT).show()
             }
             // Draw all carriage
-
+            drawAllCarriagePoly()
             // Show User's Location
 
             askPermissionsAndShowMyLocation()
@@ -108,14 +111,13 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             val accessCoarsePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
             val accessFinePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
 
-            if (accessCoarsePermission != PackageManager.PERMISSION_GRANTED || accessFinePermission != PackageManager.PERMISSION_GRANTED) {
-
+            if (accessCoarsePermission != PackageManager.PERMISSION_GRANTED
+                    || accessFinePermission != PackageManager.PERMISSION_GRANTED) {
                 // Permissions.
-                val permissions = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
-
+                val permissions = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION)
                 // Dialog.
-                ActivityCompat.requestPermissions(this, permissions,
-                        REQUEST_ID_ACCESS_COURSE_FINE_LOCATION)
+                ActivityCompat.requestPermissions(this, permissions, REQUEST_ID_ACCESS_COURSE_FINE_LOCATION)
                 return
             }
         }
@@ -183,6 +185,36 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     .tilt(40f)                   // Sets the tilt of the camera to 30 degrees
                     .build()
         }
+    }
+
+    private fun drawAllCarriagePoly() {
+        // points: overview_polyline
+        val arrCarriageDecode1 = java.util.ArrayList<LatLng>()
+        val arrCarriageDecode2 = java.util.ArrayList<LatLng>()
+        val arrCarriageDecode3 = java.util.ArrayList<LatLng>()
+
+        arrCarriageDecode1.addAll(CarriagePolyline.carriagePoly1)
+        arrCarriageDecode2.addAll(CarriagePolyline.carriagePoly2)
+        arrCarriageDecode3.addAll(CarriagePolyline.carriagePoly3)
+        // Draw polylines
+        val carriagePolyOption1 = PolylineOptions().geodesic(true).color(Color.parseColor("#99FF373E")).width(30f)
+        val carriagePolyOption2 = PolylineOptions().geodesic(true).color(Color.parseColor("#88FFF837")).width(23f)
+        val carriagePolyOption3 = PolylineOptions().geodesic(true).color(Color.parseColor("#7337FF37")).width(15f)
+
+        for (arrCarriage in arrCarriageDecode1) {
+            carriagePolyOption1.add(arrCarriage)
+        }
+        for (arrCarriage in arrCarriageDecode2) {
+            carriagePolyOption2.add(arrCarriage)
+        }
+        for (arrCarriage in arrCarriageDecode3) {
+            carriagePolyOption3.add(arrCarriage)
+        }
+
+        // Clear old direction
+        mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption1)
+        mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption2)
+        mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption3)
     }
 
     override fun onLocationChanged(p0: Location?) {
