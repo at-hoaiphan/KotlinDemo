@@ -10,11 +10,11 @@ import android.provider.BaseColumns
  */
 class PlaceStop : BaseColumns, Parcelable {
     private var id: Int = 0
-    private var name: String? = null
-    private var latitude: Double = 0.toDouble()
-    private var longitude: Double = 0.toDouble()
-    private var carriage: String? = null
-    private var address: String? = null
+    internal var name: String? = null
+    internal var latitude: Double = 0.toDouble()
+    internal var longitude: Double = 0.toDouble()
+    internal var carriage: String? = null
+    internal var address: String? = null
 
     private constructor(`in`: Parcel) {
         id = `in`.readInt()

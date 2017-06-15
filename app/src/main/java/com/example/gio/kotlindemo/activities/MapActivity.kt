@@ -15,7 +15,7 @@ import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import com.example.gio.kotlindemo.R
-import com.example.gio.kotlindemo.datas.BusStopDatabase
+import com.example.gio.kotlindemo.datas.BusStopDatabaseJava
 import com.example.gio.kotlindemo.models.bus_stops.PlaceStop
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -25,7 +25,7 @@ import kotlinx.android.synthetic.main.activity_map.*
 
 class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf()) : AppCompatActivity(), LocationListener {
     val DEFAULT_CARRIAGE = "0"
-//    val CARRIAGE_1 = "1"
+    //    val CARRIAGE_1 = "1"
 //    val CARRIAGE_2 = "2"
 //    val CARRIAGE_3 = "3"
     val REQUEST_ID_ACCESS_COURSE_FINE_LOCATION = 100
@@ -34,7 +34,8 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
     lateinit var mMyProgress: ProgressDialog
     private var mMyMap: GoogleMap? = null
     private var mCurrentMarker: Marker? = null
-    private var mBusStopDatabase: BusStopDatabase? = null
+    private var mBusStopDatabase: BusStopDatabaseJava? = null
+    private var mListMarkers: ArrayList<Marker> = arrayListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,11 +65,27 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             // Dismiss Dialog Progress when downloading finished
             mMyProgress.dismiss()
             // Get data from database
-            mBusStopDatabase = BusStopDatabase(baseContext)
+            mBusStopDatabase = BusStopDatabaseJava(baseContext)
             if (sPositionCarriage == DEFAULT_CARRIAGE) {
                 mPlaceStops.addAll(mBusStopDatabase!!.allPlaces)
             } else {
                 mPlaceStops.addAll(mBusStopDatabase!!.getPlacesByIdCarriage(sPositionCarriage))
+            }
+
+            if (mPlaceStops.size > 0) {
+                // Show default Bus Carriage
+                for (placeStop in mPlaceStops) {
+                    val option = MarkerOptions()
+                    option.title(placeStop.name)
+                    option.snippet(placeStop.latitude.toString() + ";" + placeStop.longitude.toString())
+                    option.position(LatLng(placeStop.latitude, placeStop.longitude))
+                    option.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+                    val marker = mMyMap!!.addMarker(option)
+                    mListMarkers.add(marker)
+                }
+
+            } else {
+                Toast.makeText(baseContext, R.string.error_message_load_data_fail, Toast.LENGTH_SHORT).show()
             }
             // Draw all carriage
 
