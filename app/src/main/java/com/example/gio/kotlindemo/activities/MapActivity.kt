@@ -11,6 +11,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
@@ -38,10 +39,12 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
     lateinit var mMyProgress: ProgressDialog
     private var mMyMap: GoogleMap? = null
     private var mCurrentMarker: Marker? = null
+    private var mBusMarker: Marker? = null
     private var mBusStopDatabase: BusStopDatabaseJava? = null
     private var mListMarkers: ArrayList<Marker> = arrayListOf()
     private var mAllCarriagePolyline: Polyline? = null
     private var mCarriagePolyline: Polyline? = null
+    private var mCoundownTimer: CountDownTimer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,13 +101,13 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             // Show bus carriage polyline by choose spinner
             spBusCarriage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(adapterView: AdapterView<*>, view: View, i: Int, l: Long) {
-    //                    mViewPager.setVisibility(View.GONE)
-    //                    mIsViewpagerVisibility = false
+                    //                    mViewPager.setVisibility(View.GONE)
+                    //                    mIsViewpagerVisibility = false
 
                     sPositionCarriage = i.toString()
                     // Reload map
                     mMyMap!!.clear()
-    //                    mIsDirected = false
+                    //                    mIsDirected = false
 
                     // draw carriage
                     if (sPositionCarriage == 0.toString()) {
@@ -112,10 +115,10 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     } else {
                         drawCarriagePoly(sPositionCarriage)
                     }
-    //                    // Remove previousSelectedMarker
-    //                    if (mPreviousSelectedMarker != null) {
-    //                        mPreviousSelectedMarker.remove()
-    //                    }
+                    //                    // Remove previousSelectedMarker
+                    //                    if (mPreviousSelectedMarker != null) {
+                    //                        mPreviousSelectedMarker.remove()
+                    //                    }
 
                     showMyLocation()
                     mListMarkers.clear()
@@ -262,10 +265,33 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                 carriagePolyOption.color(Color.parseColor("#7337FF37"))
             }
         }
+
         val option = MarkerOptions()
         option.title(getString(R.string.title_marker_bus_here))
         option.position(LatLng(arrCarriageDecode[0].latitude, arrCarriageDecode[0].longitude))
         option.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_marker))
+        // Cancel old moving-bus and create new one
+        mCoundownTimer?.cancel()
+        mBusMarker = mMyMap?.addMarker(option)
+        mCoundownTimer = object : CountDownTimer((arrCarriageDecode.size * 5000).toLong(), 5000) {
+            internal var index = 0
+            internal var busPosition = LatLng(arrCarriageDecode[0].latitude, arrCarriageDecode[0].longitude)
+
+            override fun onTick(millisUntilFinished: Long) {
+                if (index == arrCarriageDecode.size - 1) {
+                    cancel()
+                } else {
+                    index++
+                    busPosition = LatLng(arrCarriageDecode[index].latitude, arrCarriageDecode[index].longitude)
+                    mBusMarker?.setPosition(busPosition)
+                }
+            }
+
+            override fun onFinish() {
+                mBusMarker?.remove()
+            }
+        }.start()
+
         // Draw polyline
         for (arrCarriage in arrCarriageDecode) {
             carriagePolyOption.add(arrCarriage)
