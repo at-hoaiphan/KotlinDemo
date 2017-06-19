@@ -115,7 +115,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             // Show bus carriage polyline by choose spinner
             spBusCarriage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(adapterView: AdapterView<*>, view: View, i: Int, l: Long) {
-                    viewpagerLocation.setVisibility(View.INVISIBLE)
+                    viewpagerLocation.visibility = View.INVISIBLE
                     mIsViewpagerVisibility = false
 
                     sPositionCarriage = i.toString()
@@ -183,7 +183,7 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
 
             askPermissionsAndShowMyLocation()
         }
-        mMyMap!!.mapType = GoogleMap.MAP_TYPE_TERRAIN
+        mMyMap!!.mapType = GoogleMap.MAP_TYPE_NORMAL
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this,
@@ -271,6 +271,23 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     .bearing(90f)                // Sets the orientation of the camera to east
                     .tilt(40f)                   // Sets the tilt of the camera to 30 degrees
                     .build()
+        }
+
+        mMyMap?.setOnMyLocationButtonClickListener {
+            try {
+                mPreviousSelectedMarker?.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+            } catch (ignored: Exception) {
+
+            }
+            mCurrentMarker?.remove()
+            showMyLocation()
+//            if (mViewPager.getVisibility() == View.VISIBLE) {
+//                loadDirections(mViewPager.getCurrentItem())
+//            }
+            mMyMap?.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+            mCurrentMarker?.showInfoWindow()
+
+            true
         }
     }
 
