@@ -14,11 +14,13 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
+import android.support.v4.view.ViewPager
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.Toast
 import com.example.gio.kotlindemo.R
+import com.example.gio.kotlindemo.adapters.ViewPagerAdapter
 import com.example.gio.kotlindemo.datas.BusStopDatabaseJava
 import com.example.gio.kotlindemo.datas.CarriagePolyline
 import com.example.gio.kotlindemo.models.bus_stops.PlaceStop
@@ -28,7 +30,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import kotlinx.android.synthetic.main.activity_map.*
 
-class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf()) : AppCompatActivity(), LocationListener {
+class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
+    : AppCompatActivity(), LocationListener, ViewPager.OnPageChangeListener {
+
     val DEFAULT_CARRIAGE = "0"
     val CARRIAGE_1 = "1"
     val CARRIAGE_2 = "2"
@@ -36,15 +40,18 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
     val REQUEST_ID_ACCESS_COURSE_FINE_LOCATION = 100
     var cameraPosition: CameraPosition? = null
     var sPositionCarriage = DEFAULT_CARRIAGE
+    var mIsViewpagerVisibility: Boolean = false
     lateinit var mMyProgress: ProgressDialog
     private var mMyMap: GoogleMap? = null
     private var mCurrentMarker: Marker? = null
+    private var mPreviousSelectedMarker: Marker? = null
     private var mBusMarker: Marker? = null
     private var mBusStopDatabase: BusStopDatabaseJava? = null
     private var mListMarkers: ArrayList<Marker> = arrayListOf()
     private var mAllCarriagePolyline: Polyline? = null
     private var mCarriagePolyline: Polyline? = null
     private var mCoundownTimer: CountDownTimer? = null
+    private var mViewPagerAdapter: ViewPagerAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,9 +67,14 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
         mMyProgress.show()
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.fragmentMap) as SupportMapFragment
+
         // Put event when GoogleMap is ready.
         mapFragment.getMapAsync { googleMap -> onMyMapReady(googleMap) }
 
+        // Set onPageChange
+        viewpagerLocation.addOnPageChangeListener(this)
+        viewpagerLocation.pageMargin = 10
+        viewpagerLocation.alpha = 0.8f
         sPositionCarriage = spBusCarriage.selectedItemPosition.toString()
     }
 
@@ -80,6 +92,9 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             } else {
                 mPlaceStops.addAll(mBusStopDatabase!!.getPlacesByIdCarriage(sPositionCarriage))
             }
+            mViewPagerAdapter = ViewPagerAdapter(applicationContext, supportFragmentManager, mPlaceStops)
+            viewpagerLocation.adapter = mViewPagerAdapter
+            viewpagerLocation.visibility = View.INVISIBLE
 
             if (mPlaceStops.size > 0) {
                 // Show default Bus Carriage
@@ -92,7 +107,6 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     val marker = mMyMap!!.addMarker(option)
                     mListMarkers.add(marker)
                 }
-
             } else {
                 Toast.makeText(baseContext, R.string.error_message_load_data_fail, Toast.LENGTH_SHORT).show()
             }
@@ -101,8 +115,8 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             // Show bus carriage polyline by choose spinner
             spBusCarriage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(adapterView: AdapterView<*>, view: View, i: Int, l: Long) {
-                    //                    mViewPager.setVisibility(View.GONE)
-                    //                    mIsViewpagerVisibility = false
+                    viewpagerLocation.visibility = View.INVISIBLE
+                    mIsViewpagerVisibility = false
 
                     sPositionCarriage = i.toString()
                     // Reload map
@@ -110,15 +124,13 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     //                    mIsDirected = false
 
                     // draw carriage
-                    if (sPositionCarriage == 0.toString()) {
+                    if (sPositionCarriage == DEFAULT_CARRIAGE) {
                         drawAllCarriagePoly()
                     } else {
                         drawCarriagePoly(sPositionCarriage)
                     }
-                    //                    // Remove previousSelectedMarker
-                    //                    if (mPreviousSelectedMarker != null) {
-                    //                        mPreviousSelectedMarker.remove()
-                    //                    }
+                    // Remove previousSelectedMarker
+                    mPreviousSelectedMarker?.remove()
 
                     showMyLocation()
                     mListMarkers.clear()
@@ -128,7 +140,6 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     } else {
                         mPlaceStops.addAll(mBusStopDatabase!!.getPlacesByIdCarriage(sPositionCarriage))
                     }
-
                     if (mPlaceStops.size > 0) {
                         for (placeStop in mPlaceStops) {
                             val option = MarkerOptions()
@@ -140,20 +151,39 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                             mListMarkers.add(marker)
                         }
                     }
-//                    mViewPager.setAdapter(null)
-//                    mAdapter = ViewPagerMarkerAdapter(baseContext, supportFragmentManager, mPlaceStops)
-//                    mViewPager.setAdapter(mAdapter)
+
+                    viewpagerLocation?.adapter = null
+                    mViewPagerAdapter = ViewPagerAdapter(baseContext, supportFragmentManager, mPlaceStops)
+                    viewpagerLocation.adapter = mViewPagerAdapter
                 }
 
                 override fun onNothingSelected(adapterView: AdapterView<*>) {
-
+                    // No-op
                 }
             }
+
+            mMyMap?.setOnMarkerClickListener { marker ->
+                viewpagerLocation.visibility = View.VISIBLE
+                mIsViewpagerVisibility = true
+                try {
+                    mPreviousSelectedMarker?.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+                } catch (ignored: Exception) {
+                }
+                for (i in mListMarkers.indices) {
+                    if (marker == mListMarkers[i]) {
+                        mListMarkers[i].setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop_selected))
+                        mPreviousSelectedMarker = mListMarkers[i]
+                        viewpagerLocation.setCurrentItem(i, true)
+                    }
+                }
+                false
+            }
+
             // Show User's Location
 
             askPermissionsAndShowMyLocation()
         }
-        mMyMap!!.mapType = GoogleMap.MAP_TYPE_SATELLITE
+        mMyMap!!.mapType = GoogleMap.MAP_TYPE_NORMAL
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this,
@@ -242,6 +272,23 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
                     .tilt(40f)                   // Sets the tilt of the camera to 30 degrees
                     .build()
         }
+
+        mMyMap?.setOnMyLocationButtonClickListener {
+            try {
+                mPreviousSelectedMarker?.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+            } catch (ignored: Exception) {
+
+            }
+            mCurrentMarker?.remove()
+            showMyLocation()
+//            if (mViewPager.getVisibility() == View.VISIBLE) {
+//                loadDirections(mViewPager.getCurrentItem())
+//            }
+            mMyMap?.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+            mCurrentMarker?.showInfoWindow()
+
+            true
+        }
     }
 
     private fun drawCarriagePoly(carriage: String) {
@@ -297,12 +344,8 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
             carriagePolyOption.add(arrCarriage)
         }
         // Clear old Polyline
-        if (mCarriagePolyline != null) {
-            mCarriagePolyline?.remove()
-        }
-        if (mAllCarriagePolyline != null) {
-            mAllCarriagePolyline?.remove()
-        }
+        mCarriagePolyline?.remove()
+        mAllCarriagePolyline?.remove()
         mCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption)
     }
 
@@ -334,6 +377,32 @@ class MapActivity(private var mPlaceStops: ArrayList<PlaceStop> = arrayListOf())
         mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption1)
         mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption2)
         mAllCarriagePolyline = mMyMap?.addPolyline(carriagePolyOption3)
+    }
+
+    override fun onPageSelected(position: Int) {
+        cameraPosition = CameraPosition.Builder()
+                .target(LatLng(mListMarkers[position].position.latitude, mListMarkers[position].position.longitude))             // Sets the center of the map to location user
+                .zoom(16f)                   // Sets the zoom
+                .bearing(90f)                // Sets the orientation of the camera to east
+                .tilt(40f)                   // Sets the tilt of the camera to 40 degrees
+                .build()                   // Creates a CameraPosition from the builder
+        mMyMap?.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+        try {
+            mPreviousSelectedMarker?.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop24))
+        } catch (ignored: Exception) {
+
+        }
+        mListMarkers[position].setIcon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bus_stop_selected))
+        mListMarkers[position].showInfoWindow()
+        mPreviousSelectedMarker = mListMarkers[position]
+    }
+
+    override fun onPageScrollStateChanged(state: Int) {
+        // No-op
+    }
+
+    override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+
     }
 
     override fun onLocationChanged(p0: Location?) {
