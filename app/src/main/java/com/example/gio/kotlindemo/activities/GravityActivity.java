@@ -51,7 +51,6 @@ public class GravityActivity extends AppCompatActivity implements SensorEventLis
         float y = Math.round(sensorEvent.values[0]) * 10;
         imgGravity.setX(imgGravity.getX() + x);
         imgGravity.setY(imgGravity.getY() + y);
-        Log.d("Sensor", "onSensorChanged: " + x + y);
     }
 
     @Override
